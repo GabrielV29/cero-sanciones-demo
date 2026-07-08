@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cero Sanciones - Gestión de Procesos Jurídicos</title>
+  
+  <!-- React, ReactDOM, Babel, Tailwind CSS y Chart.js desde CDN para asegurar alta interactividad y renderizado impecable -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Fuentes premium para estética legal corporativa -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Estilos base personalizados -->
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    /* Estilos de scrollbar personalizados */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    /* Animación sutil de pulso */
+    .pulse-glow {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+  </style>
+
+  <script>
+    // Configuración temática de Tailwind CSS para coincidir con la identidad azul y dorada de Cero Sanciones
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            legalBlue: {
+              50: '#f0f6ff',
+              100: '#e0edff',
+              200: '#bad7ff',
+              300: '#7cb5ff',
+              400: '#348dff',
+              500: '#0062cc', // Color institucional primario
+              600: '#0052b3',
+              700: '#00408f',
+              800: '#002f6c',
+              900: '#001e47',
+              950: '#00112d',
+            },
+            legalGold: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              400: '#fbc02d', // Color dorado institucional de las capturas
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen overflow-x-hidden">
+
+  <!-- Contenedor raíz para React -->
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // --- BASE DE DATOS INICIAL DE SIMULACIÓN ---
+    // Representando fielmente los datos que figuran en las capturas de pantalla de Cero Sanciones
+    const INITIAL_CASES = [
+      { id: "12345", client: "Perez vs. López", status: "En Proceso", date: "20/04/2026", type: "Civil", lawyer: "Ana Gómez", desc: "Litigio de límites territoriales y propiedad urbana." },
+      { id: "67890", client: "García Ltda.", status: "Finalizado", date: "15/04/2026", type: "Laboral", lawyer: "Carlos Díaz", desc: "Conciliación contractual y resolución de despido masivo." },
+      { id: "34567", client: "Soto vs. Ruiz", status: "En Espera", date: "25/04/2026", type: "Penal", lawyer: "Lucía Méndez", desc: "Proceso penal por presuntas lesiones personales culposas." },
+      { id: "89012", client: "Martínez & Co.", status: "En Juicio", date: "28/04/2026", type: "Comercial", lawyer: "Javier Ríos", desc: "Incumplimiento de pagaré mercantil corporativo." },
+      { id: "45678", client: "López Hermanos", status: "Archivado", date: "-", type: "Administrativo", lawyer: "Ana Gómez", desc: "Recurso de reposición contra resolución tributaria." },
+      { id: "10234", client: "Ramírez vs. Díaz", status: "En Espera", date: "05/05/2026", type: "Civil", lawyer: "Carlos Díaz", desc: "División material de bien proindiviso de herederos." }
+    ];
+
+    const INITIAL_DOCUMENTS = [
+      { id: "d1", name: "Demanda Pérez vs. López", type: "PDF", date: "20/04/2026", size: "4.5 MB", folder: "Casos Civiles" },
+      { id: "d2", name: "Contrato de Arrendamiento", type: "Word", date: "18/04/2026", size: "1.2 MB", folder: "Contratos Legales" },
+      { id: "d3", name: "Informe Pericial Ruiz", type: "PDF", date: "15/04/2026", size: "1.8 MB", folder: "Informes Periciales" },
+      { id: "d4", name: "Escrito de Apelación García", type: "Word", date: "12/04/2026", size: "2.1 MB", folder: "Casos Civiles" },
+      { id: "d5", name: "Acta de Audiencia Soto", type: "PDF", date: "10/04/2026", size: "3.8 MB", folder: "Archivo General" }
+    ];
+
+    const INITIAL_USERS = [
+      { id: "u1", name: "Ana Gómez", role: "Abogada", email: "ana.gomez@cerosanciones.com", status: "Activo", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" },
+      { id: "u2", name: "Carlos Díaz", role: "Procurador", email: "carlos.diaz@cerosanciones.com", status: "Activo", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" },
+      { id: "u3", name: "Lucía Méndez", role: "Asistente Legal", email: "lucia.mendez@cerosanciones.com", status: "Activo", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150" },
+      { id: "u4", name: "Javier Ríos", role: "Juez", email: "javier.rios@cerosanciones.com", status: "Activo", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150" }
+    ];
+
+    const INITIAL_HEARINGS = [
+      { id: "h1", title: "Juicio Civil", date: "2026-04-18", time: "10:00 AM", type: "Civil", badgeColor: "bg-amber-100 text-amber-800 border-amber-300" },
+      { id: "h2", title: "Audiencia Penal", date: "2026-04-20", time: "02:00 PM", type: "Penal", badgeColor: "bg-blue-100 text-blue-800 border-blue-300" },
+      { id: "h3", title: "Vista Testimonial", date: "2026-04-22", time: "09:30 AM", type: "Laboral", badgeColor: "bg-amber-100 text-amber-800 border-amber-300" }
+    ];
+
+    const INITIAL_NOTIFICATIONS = [
+      { id: "n1", title: "Nuevo documento subido", desc: "Se ha agregado el archivo 'Informe Pericial.pdf' de forma correcta.", time: "Hace 5 min", type: "doc", read: false },
+      { id: "n2", title: "Recordatorio: Audiencia mañana", desc: "Juicio Civil de Pérez vs. López programado a las 10:00 AM.", time: "Hace 3 horas", type: "alert", read: false },
+      { id: "n3", title: "Actualización del caso Soto", desc: "El caso Soto vs. Ruiz ha cambiado su estado a 'En Juicio'.", time: "Hace 1 día", type: "case", read: true },
+      { id: "n4", title: "Tarea urgente pendiente", desc: "Revisar vencimiento judicial tributario antes de las 16:00.", time: "Hace 2 días", type: "warning", read: true }
+    ];
+
+    // --- ICONOS COMPONENTIZADOS EN SVG ---
+    const IconScales = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+      </svg>
+    );
+
+    const IconGavel = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3zM10 5l4 4-4 4" />
+      </svg>
+    );
+
+    const IconCalendar = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    );
+
+    const IconDocs = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+
+    const IconChart = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+      </svg>
+    );
+
+    const IconUsers = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    );
+
+    const IconSettings = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    );
+
+    const IconBell = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+    );
+
+    const IconLogout = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+    );
+
+    const IconSearch = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    );
+
+    const IconFolder = ({ className = "w-6 h-6", color = "currentColor" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 4C2.89543 4 2 4.89543 2 6V18C2 19.1046 2.89543 20 4 20H20C21.1046 20 22 19.1046 22 18V8C22 6.89543 21.1046 6 20 6H12L10 4H4Z"/>
+      </svg>
+    );
+
+    // --- SISTEMA GLOBAL DE COMPONENTES AUXILIARES ---
+    const Toast = ({ message, type, onClose }) => {
+      useEffect(() => {
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+      }, [onClose]);
+
+      const colors = {
+        success: 'bg-emerald-600 text-white shadow-lg shadow-emerald-100',
+        error: 'bg-rose-600 text-white shadow-lg shadow-rose-100',
+        info: 'bg-legalBlue-600 text-white shadow-lg shadow-blue-100'
+      };
+
+      return (
+        <div className={`fixed bottom-5 right-5 z-50 flex items-center space-x-3 px-4 py-3 rounded-xl border border-white/10 transition-all transform animate-bounce ${colors[type] || colors.info}`}>
+          <span class="text-xs font-semibold">{message}</span>
+          <button onClick={onClose} class="font-extrabold text-sm opacity-80 hover:opacity-100">&times;</button>
+        </div>
+      );
+    };
+
+    const StatusBadge = ({ status }) => {
+      const styles = {
+        "En Proceso": "bg-blue-100 text-blue-700 font-semibold border border-blue-200 px-3 py-1 rounded-full text-[11px]",
+        "Finalizado": "bg-emerald-100 text-emerald-700 font-semibold border border-emerald-200 px-3 py-1 rounded-full text-[11px]",
+        "En Espera": "bg-amber-100 text-amber-700 font-semibold border border-amber-200 px-3 py-1 rounded-full text-[11px]",
+        "En Juicio": "bg-rose-100 text-rose-700 font-semibold border border-rose-200 px-3 py-1 rounded-full text-[11px]",
+        "Archivado": "bg-slate-200 text-slate-700 font-semibold border border-slate-300 px-3 py-1 rounded-full text-[11px]"
+      };
+      return <span class={styles[status] || styles["En Proceso"]}>{status}</span>;
+    };
+
+
+    // --- PANTALLA DE INICIAR SESIÓN (Referencia: image_5461c6.png) ---
+    const LoginScreen = ({ onLogin }) => {
+      const [email, setEmail] = useState("admin@cerosanciones.com");
+      const [password, setPassword] = useState("password123");
+      const [loading, setLoading] = useState(false);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+          onLogin({ email, name: "Dr. Alejandro Ramos", role: "Socio Director" });
+        }, 800);
+      };
+
+      return (
+        <div class="min-h-screen flex flex-col justify-between bg-gradient-to-b from-legalBlue-600 to-legalBlue-900 text-white px-4 relative overflow-hidden">
+          {/* Fondo decorativo con silueta de balanza */}
+          <div class="absolute -right-20 -bottom-20 text-white/5 pointer-events-none transform -rotate-12">
+            <IconScales className="w-96 h-96" />
+          </div>
+          
+          <div class="flex-grow flex flex-col justify-center items-center">
+            {/* Header / Logo de Cero Sanciones */}
+            <div class="flex items-center space-x-3 mb-8 animate-fade-in-down">
+              <div class="bg-white/10 p-2.5 rounded-xl border border-white/20">
+                <IconScales className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <h1 class="text-3xl font-extrabold tracking-tight">Cero Sanciones</h1>
+                <p class="text-xs text-legalBlue-200 font-medium tracking-widest uppercase">Justicia Pro-Tecnología</p>
+              </div>
+            </div>
+
+            {/* Tarjeta de Formulario de Login */}
+            <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-slate-800 border border-slate-100 transform transition-all duration-300">
+              <h2 class="text-2xl font-bold text-center text-legalBlue-900 mb-6">Iniciar Sesión</h2>
+              
+              <form onSubmit={handleSubmit} class="space-y-5">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">Correo electrónico</label>
+                  <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                      </svg>
+                    </span>
+                    <input 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="ejemplo@cerosanciones.com"
+                      class="pl-10 pr-4 py-3 w-full border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-legalBlue-500 transition-all text-sm bg-slate-50 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">Contraseña</label>
+                  <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </span>
+                    <input 
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="••••••••"
+                      class="pl-10 pr-4 py-3 w-full border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-legalBlue-500 transition-all text-sm bg-slate-50 font-medium"
+                    />
+                  </div>
+                  <div class="text-right mt-1.5">
+                    <a href="#" class="text-xs text-legalBlue-600 hover:underline font-semibold">¿Olvidó su contraseña?</a>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  class="w-full bg-legalGold-400 hover:bg-legalGold-500 active:bg-legalGold-600 text-legalBlue-950 font-bold py-3.5 rounded-xl transition-all shadow-md text-sm border-b-4 border-legalGold-600 flex justify-center items-center"
+                >
+                  {loading ? (
+                    <span class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-legalBlue-950 border-t-transparent"></span>
+                  ) : (
+                    "Iniciar Sesión"
+                  )}
+                </button>
+              </form>
+
+              <div class="text-center mt-6 pt-5 border-t border-slate-100 text-xs">
+                <span class="text-slate-400 font-medium">¿No tienes una cuenta? </span>
+                <a href="#" class="text-legalGold-600 font-bold hover:underline">Regístrate</a>
+              </div>
+            </div>
+          </div>
+
+          {/* Pie de página decorativo */}
+          <footer class="py-4 text-center text-xs text-legalBlue-300 flex justify-between px-6 max-w-5xl mx-auto w-full z-10 font-semibold">
+            <span>Soporte</span>
+            <span>Política de Privacidad</span>
+          </footer>
+        </div>
+      );
+    };
+
+
+    // --- COMPONENTE SIDEBAR DE NAVEGACIÓN RESPONSIVO ---
+    const Sidebar = ({ currentView, onViewChange, unreadCount, onLogout, isOpen, onClose }) => {
+      const menuItems = [
+        { id: "dashboard", label: "Dashboard", icon: <IconScales className="w-5 h-5" /> },
+        { id: "cases", label: "Mis Casos", icon: <IconGavel className="w-5 h-5" /> },
+        { id: "calendar", label: "Calendario", icon: <IconCalendar className="w-5 h-5" /> },
+        { id: "documents", label: "Documentos", icon: <IconDocs className="w-5 h-5" /> },
+        { id: "reports", label: "Reportes", icon: <IconChart className="w-5 h-5" /> },
+        { id: "users", label: "Usuarios", icon: <IconUsers className="w-5 h-5" /> }
+      ];
+
+      return (
+        <>
+          {/* Backdrop móvil */}
+          {isOpen && (
+            <div 
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300"
+              onClick={onClose}
+            ></div>
+          )}
+
+          <aside class={`w-64 bg-gradient-to-b from-legalBlue-850 to-legalBlue-950 text-white h-screen flex flex-col justify-between shadow-2xl fixed md:sticky top-0 left-0 z-40 transition-transform duration-300 ease-in-out ${
+            isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}>
+            <div>
+              {/* Header de Sidebar */}
+              <div class="p-6 border-b border-legalBlue-800/50 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="bg-white/10 p-2 rounded-lg">
+                    <IconScales className="w-6 h-6 text-legalGold-400" />
+                  </div>
+                  <div>
+                    <h2 class="font-bold text-lg leading-tight tracking-wider">Cero Sanciones</h2>
+                    <span class="text-[10px] text-legalBlue-300 uppercase tracking-widest font-bold">JusticiaPro</span>
+                  </div>
+                </div>
+                {/* Botón de cierre móvil */}
+                <button 
+                  onClick={onClose} 
+                  class="md:hidden p-1 rounded-lg hover:bg-legalBlue-700/50 transition-colors"
+                >
+                  <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Enlaces de Menú */}
+              <nav class="p-4 space-y-1">
+                {menuItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => { onViewChange(item.id); onClose(); }}
+                    class={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                      currentView === item.id 
+                        ? "bg-legalBlue-600 text-white shadow-lg shadow-legalBlue-900/50 border border-white/10" 
+                        : "text-legalBlue-200 hover:bg-legalBlue-800/40 hover:text-white"
+                    }`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Opciones de Pie de Sidebar */}
+            <div class="p-4 border-t border-legalBlue-850/40 space-y-1">
+              <button
+                onClick={() => { onViewChange("notifications"); onClose(); }}
+                class={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  currentView === "notifications" 
+                    ? "bg-legalBlue-600 text-white" 
+                    : "text-legalBlue-200 hover:bg-legalBlue-800/40 hover:text-white"
+                }`}
+              >
+                <div class="flex items-center space-x-3">
+                  <IconBell className="w-5 h-5" />
+                  <span>Notificaciones</span>
+                </div>
+                {unreadCount > 0 && (
+                  <span class="bg-rose-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full pulse-glow">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => { onViewChange("settings"); onClose(); }}
+                class={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  currentView === "settings" 
+                    ? "bg-legalBlue-600 text-white" 
+                    : "text-legalBlue-200 hover:bg-legalBlue-800/40 hover:text-white"
+                }`}
+              >
+                <IconSettings className="w-5 h-5" />
+                <span>Ajustes</span>
+              </button>
+
+              <button
+                onClick={onLogout}
+                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-950/25 hover:text-rose-200 transition-all mt-2"
+              >
+                <IconLogout className="w-5 h-5" />
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
+          </aside>
+        </>
+      );
+    };
+
+
+    // --- COMPONENTE CABECERA (HEADER) ---
+    const Header = ({ title, user, notifications, onViewChange, onToggleSidebar }) => {
+      const [showDropdown, setShowDropdown] = useState(false);
+      const unreadCount = notifications.filter(n => !n.read).length;
+
+      return (
+        <header class="bg-white border-b border-slate-100 py-4 px-6 flex justify-between items-center sticky top-0 z-20 shadow-xs">
+          <div class="flex items-center space-x-3">
+            {/* Botón Hamburguesa móvil */}
+            <button
+              onClick={onToggleSidebar}
+              class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-xl md:hidden transition-all"
+            >
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <h1 class="text-lg md:text-2xl font-extrabold text-slate-800 truncate">{title}</h1>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            {/* Buscador Rápido Global */}
+            <div class="relative hidden sm:block">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <IconSearch className="w-4 h-4" />
+              </span>
+              <input 
+                type="text" 
+                placeholder="Buscar expediente..." 
+                class="bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-legalBlue-500 focus:bg-white transition-all w-60"
+              />
+            </div>
+
+            {/* Icono de Notificaciones rápido */}
+            <div class="relative">
+              <button 
+                onClick={() => onViewChange("notifications")}
+                class="p-2 text-slate-500 hover:bg-slate-100 rounded-xl relative transition-all"
+              >
+                <IconBell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+                )}
+              </button>
+            </div>
+
+            {/* Info Usuario */}
+            <div class="relative">
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)}
+                class="flex items-center space-x-3 p-1 rounded-xl hover:bg-slate-50 transition-all focus:outline-none"
+              >
+                <img 
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" 
+                  alt={user.name} 
+                  class="w-9 h-9 rounded-full object-cover ring-2 ring-legalBlue-100"
+                />
+                <div class="text-left hidden md:block">
+                  <span class="block text-xs font-bold text-slate-700 leading-none">{user.name}</span>
+                  <span class="text-[10px] text-slate-400 font-semibold">{user.role}</span>
+                </div>
+              </button>
+
+              {showDropdown && (
+                <div class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-30 animate-fade-in">
+                  <div class="px-4 py-2 border-b border-slate-100">
+                    <span class="block text-xs font-bold text-slate-800">{user.name}</span>
+                    <span class="block text-[10px] text-slate-500">{user.email}</span>
+                  </div>
+                  <button onClick={() => { onViewChange("settings"); setShowDropdown(false); }} class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">Perfil</button>
+                  <button onClick={() => { onViewChange("settings"); setShowDropdown(false); }} class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">Ajustes</button>
+                  <hr class="border-slate-100"/>
+                  <button onClick={() => { onViewChange("settings"); setShowDropdown(false); }} class="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all">Cerrar sesión</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+      );
+    };
+
+
+    // --- SECCIÓN: DASHBOARD GENERAL (Referencia: image_5461fe.png) ---
+    const DashboardView = ({ cases, hearings, documents, notifications, users, onViewChange, onAddCaseClick }) => {
+      
+      const activeCount = cases.filter(c => c.status === "En Proceso" || c.status === "En Juicio").length;
+      const pendingCount = cases.filter(c => c.status === "En Espera").length;
+      const closedCount = cases.filter(c => c.status === "Finalizado").length;
+      
+      const chartRef = useRef(null);
+      const chartInstance = useRef(null);
+
+      useEffect(() => {
+        if (chartRef.current) {
+          if (chartInstance.current) {
+            chartInstance.current.destroy();
+          }
+
+          const ctx = chartRef.current.getContext('2d');
+          chartInstance.current = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+              datasets: [
+                {
+                  label: 'Nuevos',
+                  data: [15, 22, 10, 18, 32, 24],
+                  backgroundColor: '#f59e0b',
+                  borderRadius: 6,
+                },
+                {
+                  label: 'Cerrados',
+                  data: [8, 12, 18, 14, 16, 28],
+                  backgroundColor: '#0062cc',
+                  borderRadius: 6,
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: { boxWidth: 12, font: { family: 'Inter', size: 11, weight: 'bold' } }
+                }
+              },
+              scales: {
+                y: { grid: { color: '#f1f5f9' }, border: { dash: [5, 5] } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+        }
+        return () => {
+          if (chartInstance.current) {
+            chartInstance.current.destroy();
+          }
+        };
+      }, [cases]);
+
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          
+          {/* Tarjetas de Métricas */}
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Casos Activos</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{activeCount}</h3>
+              </div>
+              <div class="bg-blue-50 text-blue-600 p-3.5 rounded-xl border border-blue-100">
+                <IconGavel className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Casos Pendientes</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{pendingCount}</h3>
+              </div>
+              <div class="bg-amber-50 text-amber-600 p-3.5 rounded-xl border border-amber-100">
+                <IconScales className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Audiencias Hoy</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{hearings.length}</h3>
+              </div>
+              <div class="bg-emerald-50 text-emerald-600 p-3.5 rounded-xl border border-emerald-100">
+                <IconCalendar className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Tareas Urgentes</span>
+                <h3 class="text-3xl font-extrabold text-rose-600 mt-1">5</h3>
+              </div>
+              <div class="bg-rose-50 text-rose-600 p-3.5 rounded-xl border border-rose-100">
+                <span class="font-extrabold text-lg">★</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Gráfico y Mini Calendario */}
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800 text-sm">Evolución de Casos</h4>
+                <span class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Estadísticas Semestrales</span>
+              </div>
+              <div class="h-64 relative">
+                <canvas ref={chartRef}></canvas>
+              </div>
+            </div>
+
+            {/* Mini Calendario */}
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                  <h4 class="font-bold text-slate-800 text-sm">Calendario</h4>
+                  <button onClick={() => onViewChange("calendar")} class="text-[11px] font-bold text-legalBlue-500 hover:underline">Ver agenda &rsaquo;</button>
+                </div>
+                
+                <div class="text-center">
+                  <div class="grid grid-cols-7 text-[10px] font-extrabold text-slate-400 mb-2 uppercase">
+                    <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                  </div>
+                  <div class="grid grid-cols-7 gap-1 text-[11px] font-medium">
+                    <span class="p-1.5 text-slate-300">30</span>
+                    <span class="p-1.5 text-slate-300">31</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">1</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">2</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">3</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">4</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">5</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">6</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">7</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">8</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">9</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">10</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">11</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">12</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">13</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">14</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">15</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">16</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">17</span>
+                    {/* 18: Audiencia marcada en dorado */}
+                    <span class="p-1.5 bg-legalGold-400 text-slate-900 font-bold rounded-lg relative group">
+                      18
+                    </span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">19</span>
+                    {/* 20: Audiencia penal marcada en azul */}
+                    <span class="p-1.5 bg-legalBlue-500 text-white font-bold rounded-lg relative group">
+                      20
+                    </span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">21</span>
+                    {/* 22: Vista testimonial marcada en dorado */}
+                    <span class="p-1.5 bg-legalGold-400 text-slate-900 font-bold rounded-lg relative group">
+                      22
+                    </span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">23</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">24</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">25</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">26</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">27</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">28</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">29</span>
+                    <span class="p-1.5 hover:bg-slate-100 rounded-lg">30</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex justify-around text-[10px] font-bold text-slate-500">
+                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-legalGold-400 mr-1.5"></span> Civil / Vista</span>
+                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-legalBlue-500 mr-1.5"></span> Penal</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Fila Inferior: Lista de Procesos Recientes */}
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 overflow-hidden">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800 text-sm">Procesos Recientes</h4>
+                <div class="space-x-2">
+                  <button onClick={onAddCaseClick} class="bg-legalBlue-500 hover:bg-legalBlue-600 text-white text-xs px-3 py-1.5 rounded-xl transition-all font-bold">+ Nuevo Proceso</button>
+                  <button onClick={() => onViewChange("cases")} class="text-slate-400 hover:text-slate-600 font-bold text-xs transition-all">Ver todos &rsaquo;</button>
+                </div>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs min-w-[500px]">
+                  <thead>
+                    <tr class="text-slate-400 uppercase tracking-wider font-bold border-b border-slate-100">
+                      <th class="py-3">Expediente</th>
+                      <th class="py-3">Cliente</th>
+                      <th class="py-3">Estado</th>
+                      <th class="py-3">Próxima Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-50">
+                    {cases.slice(0, 4).map((item) => (
+                      <tr key={item.id} class="hover:bg-slate-50/50 transition-all">
+                        <td class="py-3.5 font-bold text-slate-700">{item.id}</td>
+                        <td class="py-3.5 font-semibold text-slate-600">{item.client}</td>
+                        <td class="py-3.5"><StatusBadge status={item.status} /></td>
+                        <td class="py-3.5 text-slate-500 font-semibold">{item.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Widgets Rápidos */}
+            <div class="space-y-6">
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+                <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-3">Gestión Documental</h4>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                  <button onClick={() => onViewChange("documents")} class="p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-all">
+                    <span class="block text-amber-500 text-lg">📁</span>
+                    <span class="text-[10px] font-bold text-slate-600 mt-1 block">Recientes</span>
+                  </button>
+                  <button onClick={() => onViewChange("documents")} class="p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-all">
+                    <span class="block text-legalBlue-500 text-lg">⚙️</span>
+                    <span class="text-[10px] font-bold text-slate-600 mt-1 block">Generar Informe</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+                <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-3">Reportes Rápidos</h4>
+                <div class="flex space-x-2">
+                  <button onClick={() => onViewChange("reports")} class="flex-1 bg-legalBlue-500 hover:bg-legalBlue-600 text-white text-xs font-bold py-2.5 rounded-xl transition-all">Informe Mensual</button>
+                  <button onClick={() => onViewChange("reports")} class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition-all">Resumen Anual</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- SECCIÓN: LISTA DE PROCESOS (Referencia: image_54627a.png) ---
+    const CasesView = ({ cases, onAddCaseClick, onDeleteCase, onViewDetail }) => {
+      const [searchTerm, setSearchTerm] = useState("");
+      const [statusFilter, setStatusFilter] = useState("Todos");
+      const [currentPage, setCurrentPage] = useState(1);
+      const itemsPerPage = 5;
+
+      const filteredCases = useMemo(() => {
+        return cases.filter(item => {
+          const matchesSearch = item.client.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                item.id.includes(searchTerm) || 
+                                item.lawyer.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesStatus = statusFilter === "Todos" || item.status === statusFilter;
+          return matchesSearch && matchesStatus;
+        });
+      }, [cases, searchTerm, statusFilter]);
+
+      const paginatedCases = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredCases.slice(start, start + itemsPerPage);
+      }, [filteredCases, currentPage]);
+
+      const totalPages = Math.ceil(filteredCases.length / itemsPerPage) || 1;
+
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-6">
+              <div class="flex items-center space-x-3">
+                <div class="bg-legalBlue-50 p-2.5 rounded-xl border border-blue-100 text-legalBlue-500">
+                  <IconGavel className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 class="font-extrabold text-lg text-slate-800">Lista de Procesos</h3>
+                  <p class="text-xs text-slate-400 font-semibold">Panel administrativo de expedientes jurídicos vigentes</p>
+                </div>
+              </div>
+              <button 
+                onClick={onAddCaseClick}
+                class="bg-legalBlue-500 hover:bg-legalBlue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all flex items-center space-x-1.5"
+              >
+                <span>+ Agregar Proceso</span>
+              </button>
+            </div>
+
+            {/* Filtros */}
+            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 mb-6">
+              <div class="relative flex-grow">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                  <IconSearch className="w-5 h-5" />
+                </span>
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  placeholder="Buscar por expediente, cliente o abogado..." 
+                  class="bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-legalBlue-500 focus:bg-white w-full transition-all"
+                />
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <label class="text-xs font-bold text-slate-500">Estado:</label>
+                <select 
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-legalBlue-500"
+                >
+                  <option value="Todos">Todos</option>
+                  <option value="En Proceso">En Proceso</option>
+                  <option value="Finalizado">Finalizado</option>
+                  <option value="En Espera">En Espera</option>
+                  <option value="En Juicio">En Juicio</option>
+                  <option value="Archivado">Archivado</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tabla */}
+            <div class="overflow-x-auto -mx-6 px-6">
+              <table class="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr class="text-slate-400 border-b border-slate-100 uppercase tracking-wider text-[11px] font-bold">
+                    <th class="py-4 px-4">Expediente</th>
+                    <th class="py-4 px-4">Cliente</th>
+                    <th class="py-4 px-4">Estado</th>
+                    <th class="py-4 px-4">Próxima Fecha</th>
+                    <th class="py-4 px-4">Abogado</th>
+                    <th class="py-4 px-4 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50 text-xs">
+                  {paginatedCases.length > 0 ? (
+                    paginatedCases.map((item) => (
+                      <tr key={item.id} class="hover:bg-slate-50/40 transition-all">
+                        <td class="py-4 px-4 font-bold text-slate-700">{item.id}</td>
+                        <td class="py-4 px-4 font-bold text-slate-600">{item.client}</td>
+                        <td class="py-4 px-4"><StatusBadge status={item.status} /></td>
+                        <td class="py-4 px-4 text-slate-500 font-bold">{item.date}</td>
+                        <td class="py-4 px-4 font-semibold text-slate-500">{item.lawyer}</td>
+                        <td class="py-4 px-4">
+                          <div class="flex items-center justify-center space-x-2">
+                            <button 
+                              onClick={() => onViewDetail(item)}
+                              class="p-1.5 bg-slate-50 border border-slate-100 rounded-lg hover:bg-legalBlue-50 hover:text-legalBlue-600 transition-all" 
+                              title="Detalle"
+                            >
+                              👁️
+                            </button>
+                            <button 
+                              onClick={() => onDeleteCase(item.id)}
+                              class="p-1.5 bg-slate-50 border border-slate-100 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-all" 
+                              title="Eliminar"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" class="text-center py-12 text-slate-400 font-bold">
+                        Ningún expediente coincide con los filtros.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginación */}
+            <div class="flex flex-col sm:flex-row justify-between items-center pt-6 border-t border-slate-100 mt-6 text-xs text-slate-500 space-y-4 sm:space-y-0 font-semibold">
+              <span>Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredCases.length)} de {filteredCases.length} procesos</span>
+              
+              <div class="flex items-center space-x-1">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  class="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-lg border border-slate-200 disabled:opacity-50 transition-all"
+                >
+                  &lsaquo; Anterior
+                </button>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    class={`px-3 py-2 rounded-lg transition-all ${
+                      currentPage === i + 1 
+                        ? "bg-legalBlue-500 text-white font-bold" 
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  class="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-lg border border-slate-200 disabled:opacity-50 transition-all"
+                >
+                  Siguiente &rsaquo;
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- SECCIÓN: CALENDARIO DE AUDIENCIAS (Referencia: image_546223.png) ---
+    const CalendarView = ({ hearings, onAddEventClick }) => {
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 lg:col-span-2">
+              <div class="flex justify-between items-center mb-6 pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                  <span class="text-xl">📅</span>
+                  <h3 class="font-extrabold text-base text-slate-800">Calendario</h3>
+                </div>
+                <div class="flex items-center space-x-4">
+                  <span class="text-xs font-extrabold text-slate-700">Abril 2026</span>
+                </div>
+              </div>
+
+              <div class="text-center">
+                <div class="grid grid-cols-7 text-[10px] font-extrabold text-slate-400 mb-3 uppercase tracking-wider">
+                  <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                </div>
+                <div class="grid grid-cols-7 gap-1 md:gap-2">
+                  <div class="p-2 md:p-4 bg-slate-50/50 text-slate-300 rounded-xl text-xs">30</div>
+                  <div class="p-2 md:p-4 bg-slate-50/50 text-slate-300 rounded-xl text-xs">31</div>
+                  
+                  {Array.from({ length: 30 }).map((_, i) => {
+                    const day = i + 1;
+                    const event = hearings.find(h => h.date === `2026-04-${day < 10 ? '0' + day : day}`);
+                    
+                    return (
+                      <div 
+                        key={day} 
+                        class={`p-2 md:p-4 border border-slate-100 rounded-xl flex flex-col justify-between h-16 md:h-20 transition-all hover:border-legalBlue-200 ${
+                          event ? 'bg-legalBlue-50/40 font-bold border-legalBlue-100' : 'bg-white font-semibold'
+                        }`}
+                      >
+                        <span class="text-xs text-slate-500 self-start">{day}</span>
+                        {event && (
+                          <span class={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-full ${event.badgeColor}`}>
+                            {event.title}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 flex flex-col justify-between">
+              <div>
+                <h3 class="font-extrabold text-base text-slate-800 mb-6 pb-3 border-b border-slate-100">Próximas Audiencias</h3>
+                
+                <div class="space-y-4">
+                  {hearings.map((item) => (
+                    <div key={item.id} class="p-4 border border-slate-100 rounded-xl flex items-start space-x-3 bg-slate-50/30">
+                      <div class="text-2xl">⚖️</div>
+                      <div class="flex-grow">
+                        <div class="flex justify-between items-center">
+                          <span class="text-xs font-bold text-slate-800">{item.date.split("-")[2]} Abr - {item.title}</span>
+                          <span class="text-[10px] text-legalBlue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full">{item.type}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-bold mt-1">{item.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                onClick={onAddEventClick}
+                class="w-full bg-legalGold-400 hover:bg-legalGold-500 text-legalBlue-950 font-bold py-3.5 rounded-xl transition-all shadow-md text-xs border-b-4 border-legalGold-600 mt-6"
+              >
+                Programar Audiencia
+              </button>
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- SECCIÓN: GESTIÓN DOCUMENTAL (Referencia: image_54629c.png) ---
+    const DocumentsView = ({ documents, onAddDocClick, onDeleteDoc, toastInfo }) => {
+      const [currentFolder, setCurrentFolder] = useState("Todos");
+      const [searchTerm, setSearchTerm] = useState("");
+
+      const folders = ["Casos Civiles", "Casos Penales", "Contratos Legales", "Informes Periciales", "Archivo General"];
+
+      const filteredDocuments = documents.filter(doc => {
+        const matchesFolder = currentFolder === "Todos" || doc.folder === currentFolder;
+        const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesFolder && matchesSearch;
+      });
+
+      const totalUsedGB = useMemo(() => {
+        const base = 8.2;
+        const extra = documents.length * 0.05;
+        return parseFloat((base + extra).toFixed(2));
+      }, [documents]);
+
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6">
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-5 border-b border-slate-100 mb-6 space-y-4 sm:space-y-0">
+              <div class="flex items-center space-x-3">
+                <span class="text-3xl">📁</span>
+                <div>
+                  <h3 class="font-extrabold text-lg text-slate-800">Gestión Documental</h3>
+                  <p class="text-xs text-slate-400 font-semibold">Directorio unificado de expedientes, pruebas y actas escriturales</p>
+                </div>
+              </div>
+              <div class="flex space-x-2 w-full sm:w-auto">
+                <button 
+                  onClick={() => toastInfo("Carpeta creada correctamente.", "success")}
+                  class="flex-1 sm:flex-initial bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all"
+                >
+                  + Nueva Carpeta
+                </button>
+                <button 
+                  onClick={onAddDocClick}
+                  class="flex-1 sm:flex-initial bg-legalBlue-500 hover:bg-legalBlue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all flex items-center justify-center space-x-1"
+                >
+                  <span>☁️ Subir Documento</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              
+              {/* Carpetas Lateral */}
+              <div class="space-y-4">
+                <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider">Carpetas</h4>
+                <div class="space-y-1">
+                  <button 
+                    onClick={() => setCurrentFolder("Todos")}
+                    class={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+                      currentFolder === "Todos" ? "bg-legalBlue-500 text-white shadow-md" : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span>📁</span> <span>Todos los Documentos</span>
+                  </button>
+                  {folders.map(f => (
+                    <button 
+                      key={f}
+                      onClick={() => setCurrentFolder(f)}
+                      class={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
+                        currentFolder === f ? "bg-legalBlue-500 text-white shadow-md" : "text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div class="flex items-center space-x-2 truncate">
+                        <span>📂</span>
+                        <span class="truncate">{f}</span>
+                      </div>
+                      <span class="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full ml-1">
+                        {documents.filter(d => d.folder === f).length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contenido Documentos */}
+              <div class="lg:col-span-3 space-y-6">
+                
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <IconSearch className="w-4 h-4" />
+                  </span>
+                  <input 
+                    type="text" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por nombre del documento..." 
+                    class="bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-legalBlue-500 focus:bg-white w-full transition-all"
+                  />
+                </div>
+
+                <div class="overflow-x-auto border border-slate-100 rounded-2xl">
+                  <table class="w-full text-left text-xs min-w-[500px]">
+                    <thead>
+                      <tr class="text-slate-400 uppercase tracking-wider font-bold bg-slate-50/50 border-b border-slate-100">
+                        <th class="p-3">Nombre</th>
+                        <th class="p-3">Tipo</th>
+                        <th class="p-3">Fecha</th>
+                        <th class="p-3 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-semibold">
+                      {filteredDocuments.map(item => (
+                        <tr key={item.id} class="hover:bg-slate-50/30 transition-all">
+                          <td class="p-3 flex items-center space-x-2.5 text-slate-700">
+                            <span class="text-lg">{item.type === "PDF" ? "📕" : "📘"}</span>
+                            <span>{item.name}</span>
+                          </td>
+                          <td class="p-3 text-slate-400">{item.type}</td>
+                          <td class="p-3 text-slate-500">{item.date}</td>
+                          <td class="p-3">
+                            <div class="flex items-center justify-center space-x-2">
+                              <button 
+                                onClick={() => toastInfo(`Visualizando: ${item.name}`, "info")}
+                                class="p-1 bg-slate-50 border border-slate-100 rounded hover:bg-slate-100 text-xs"
+                              >
+                                👁️
+                              </button>
+                              <button 
+                                onClick={() => onDeleteDoc(item.id)}
+                                class="p-1 bg-slate-50 border border-slate-100 rounded hover:bg-rose-50 text-rose-500 text-xs"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Grid Visual de Carpetas */}
+                <div>
+                  <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-3">Expedientes Destacados</h4>
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="p-4 bg-amber-50 border border-amber-100 rounded-2xl hover:shadow-md transition-all flex flex-col justify-between h-28">
+                      <span class="text-2xl">📂</span>
+                      <div>
+                        <span class="block font-bold text-xs text-amber-800 leading-tight">Expediente 12345</span>
+                        <span class="text-[10px] text-amber-600 mt-1 block font-semibold">Demanda Inicial</span>
+                      </div>
+                    </div>
+                    <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl hover:shadow-md transition-all flex flex-col justify-between h-28">
+                      <span class="text-2xl">📂</span>
+                      <div>
+                        <span class="block font-bold text-xs text-blue-800 leading-tight">Caso Martínez & Co.</span>
+                        <span class="text-[10px] text-blue-600 mt-1 block font-semibold">Corporativo</span>
+                      </div>
+                    </div>
+                    <div class="p-4 bg-amber-50 border border-amber-100 rounded-2xl hover:shadow-md transition-all flex flex-col justify-between h-28">
+                      <span class="text-2xl">📂</span>
+                      <div>
+                        <span class="block font-bold text-xs text-amber-800 leading-tight">Soto vs. Ruiz</span>
+                        <span class="text-[10px] text-amber-600 mt-1 block font-semibold">Análisis Clínico</span>
+                      </div>
+                    </div>
+                    <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl hover:shadow-md transition-all flex flex-col justify-between h-28">
+                      <span class="text-2xl">📂</span>
+                      <div>
+                        <span class="block font-bold text-xs text-blue-800 leading-tight">Contratos</span>
+                        <span class="text-[10px] text-blue-600 mt-1 block font-semibold">Servidumbres</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Almacenamiento */}
+                <div class="pt-6 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                  <div class="flex space-x-2">
+                    <button onClick={() => toastInfo("Descargando archivo comprimido ZIP...", "success")} class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all">Descargar Todo</button>
+                    <button onClick={() => toastInfo("Generando informe consolidado...", "success")} class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all">Generar Informe</button>
+                  </div>
+                  
+                  <div class="w-full md:w-64">
+                    <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                      <span>Almacenamiento</span>
+                      <span>{totalUsedGB} GB de 10 GB</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                      <div class="bg-legalBlue-500 h-2 rounded-full transition-all" style={{ width: `${(totalUsedGB/10)*100}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- SECCIÓN: REPORTES Y METRICAS (Referencia: image_54654b.png) ---
+    const ReportsView = ({ cases, toastInfo }) => {
+      const mainChartRef = useRef(null);
+      const pieChartRef = useRef(null);
+      
+      const mainChartInstance = useRef(null);
+      const pieChartInstance = useRef(null);
+
+      useEffect(() => {
+        if (mainChartRef.current) {
+          if (mainChartInstance.current) {
+            mainChartInstance.current.destroy();
+          }
+          const ctx = mainChartRef.current.getContext('2d');
+          mainChartInstance.current = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+              datasets: [
+                {
+                  type: 'bar',
+                  label: 'Nuevos',
+                  data: [15, 22, 10, 18, 32, 24],
+                  backgroundColor: '#f59e0b',
+                  borderRadius: 4
+                },
+                {
+                  type: 'bar',
+                  label: 'Cerrados',
+                  data: [8, 12, 18, 14, 16, 28],
+                  backgroundColor: '#0062cc',
+                  borderRadius: 4
+                },
+                {
+                  type: 'line',
+                  label: 'Tasa de Cierre (%)',
+                  data: [50, 54, 75, 77, 50, 92],
+                  borderColor: '#002f6c',
+                  borderWidth: 2,
+                  fill: false,
+                  tension: 0.3
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Inter', size: 11, weight: 'bold' } } }
+              },
+              scales: {
+                y: { grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+        }
+
+        if (pieChartRef.current) {
+          if (pieChartInstance.current) {
+            pieChartInstance.current.destroy();
+          }
+          const ctx = pieChartRef.current.getContext('2d');
+          pieChartInstance.current = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Civiles', 'Penales', 'Laborales'],
+              datasets: [{
+                data: [45, 35, 20],
+                backgroundColor: ['#fbc02d', '#0062cc', '#002f6c'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Inter', size: 11, weight: 'bold' } } }
+              }
+            }
+          });
+        }
+
+        return () => {
+          if (mainChartInstance.current) mainChartInstance.current.destroy();
+          if (pieChartInstance.current) pieChartInstance.current.destroy();
+        };
+      }, [cases]);
+
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          
+          <div class="flex items-center space-x-3 mb-2">
+            <span class="text-3xl">📊</span>
+            <div>
+              <h3 class="font-extrabold text-lg text-slate-800">Reportes y Métricas</h3>
+              <p class="text-xs text-slate-400 font-semibold">Análisis cuantitativo de eficiencia procesal, resolución y carga de trabajo</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2">
+              <h4 class="font-bold text-slate-800 text-sm mb-4">Casos: Nuevos vs. Cerrados</h4>
+              <div class="h-64 relative">
+                <canvas ref={mainChartRef}></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+              <h4 class="font-bold text-slate-800 text-sm">Resumen Anual</h4>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                  <span class="block text-xl">📁</span>
+                  <span class="block text-lg font-extrabold text-slate-800 mt-1">320</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-1">Casos Totales</span>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                  <span class="block text-xl">📈</span>
+                  <span class="block text-lg font-extrabold text-slate-800 mt-1">210</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-1">Resueltos</span>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                  <span class="block text-xl">⚖️</span>
+                  <span class="block text-lg font-extrabold text-slate-800 mt-1">85</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-1">Audiencias</span>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                  <span class="block text-xl">🔖</span>
+                  <span class="block text-lg font-extrabold text-slate-800 mt-1">25</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-1">Pendientes</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
+              <h4 class="font-bold text-slate-800 text-sm mb-4">Distribución de Casos</h4>
+              <div class="h-56 relative">
+                <canvas ref={pieChartRef}></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between">
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm mb-4">Tiempo Promedio de Resolución</h4>
+                <div class="space-y-4">
+                  <div>
+                    <div class="flex justify-between items-center text-xs text-slate-600 font-bold mb-1">
+                      <span>Civil</span>
+                      <span>3.2 Meses</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                      <div class="bg-legalBlue-500 h-2 rounded-full" style={{ width: '45%' }}></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between items-center text-xs text-slate-600 font-bold mb-1">
+                      <span>Penal</span>
+                      <span>5.4 Meses</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                      <div class="bg-legalBlue-700 h-2 rounded-full" style={{ width: '75%' }}></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between items-center text-xs text-slate-600 font-bold mb-1">
+                      <span>Laboral</span>
+                      <span>2.8 Meses</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                      <div class="bg-legalBlue-400 h-2 rounded-full" style={{ width: '35%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex space-x-2 mt-6">
+                <button onClick={() => toastInfo("Preparando descarga del PDF...", "success")} class="flex-1 bg-legalBlue-500 hover:bg-legalBlue-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all text-center">Descargar Informe</button>
+                <button onClick={() => toastInfo("Generando reporte interactivo...", "success")} class="flex-1 bg-legalGold-400 hover:bg-legalGold-500 text-slate-900 font-bold py-2.5 rounded-xl text-xs transition-all text-center">Generar Reporte</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- SECCIÓN: EQUIPO/USUARIOS (Referencia: image_546243.png) ---
+    const UsersView = ({ users, onAddUserClick, onToggleUserStatus }) => {
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6">
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-5 border-b border-slate-100 mb-6 space-y-4 sm:space-y-0">
+              <div class="flex items-center space-x-3">
+                <span class="text-3xl">👥</span>
+                <div>
+                  <h3 class="font-extrabold text-lg text-slate-800">Usuarios del Equipo</h3>
+                  <p class="text-xs text-slate-400 font-semibold">Abogados, procuradores y personal asistente de Cero Sanciones</p>
+                </div>
+              </div>
+              <button 
+                onClick={onAddUserClick}
+                class="bg-legalBlue-500 hover:bg-legalBlue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-md"
+              >
+                + Añadir Usuario
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {users.map(item => (
+                <div key={item.id} class="p-5 border border-slate-100 rounded-2xl flex flex-col items-center text-center hover:shadow-md transition-all relative">
+                  <span class={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${item.status === 'Activo' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                  
+                  <img 
+                    src={item.avatar} 
+                    alt={item.name} 
+                    class="w-16 h-16 rounded-full object-cover ring-4 ring-slate-50 mb-3"
+                  />
+                  <h4 class="font-bold text-slate-800 text-sm leading-tight">{item.name}</h4>
+                  <span class="text-xs text-legalBlue-500 font-bold bg-blue-50 px-2.5 py-0.5 rounded-full mt-1.5">{item.role}</span>
+                  <span class="text-[10px] text-slate-400 mt-2 block font-semibold">{item.email}</span>
+                  
+                  <div class="mt-4 pt-4 border-t border-slate-100 w-full">
+                    <button 
+                      onClick={() => onToggleUserStatus(item.id)}
+                      class="text-xs font-bold text-slate-500 hover:text-slate-800 transition-all"
+                    >
+                      {item.status === 'Activo' ? 'Inactivar' : 'Activar'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+    // --- SECCIÓN: CONFIGURACIONES ---
+    const SettingsView = ({ user, toastInfo }) => {
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 max-w-2xl">
+            <h3 class="font-extrabold text-base text-slate-800 pb-3 border-b border-slate-100 mb-6">Ajustes del Sistema</h3>
+            
+            <div class="space-y-6">
+              <div>
+                <h4 class="font-bold text-slate-700 text-xs uppercase tracking-wider mb-3">Información del Perfil</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Nombre Completo</label>
+                    <input type="text" value={user.name} readonly class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full focus:outline-none"/>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Dirección de Correo</label>
+                    <input type="text" value={user.email} readonly class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full focus:outline-none"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-4 border-t border-slate-100 flex justify-end">
+                <button 
+                  onClick={() => toastInfo("Cambios guardados correctamente.", "success")}
+                  class="bg-legalBlue-500 hover:bg-legalBlue-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow"
+                >
+                  Guardar Ajustes
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- CENTRO DE NOTIFICACIONES ---
+    const NotificationsView = ({ notifications, onMarkRead, onMarkAllRead, onDeleteNotification }) => {
+      return (
+        <div class="p-4 md:p-6 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 max-w-3xl">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-6">
+              <div class="flex items-center space-x-2">
+                <span class="text-xl">🔔</span>
+                <h3 class="font-extrabold text-base text-slate-800">Todas las Notificaciones</h3>
+              </div>
+              <button 
+                onClick={onMarkAllRead}
+                class="text-xs font-bold text-legalBlue-500 hover:underline"
+              >
+                Marcar todas como leídas
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              {notifications.map(item => (
+                <div 
+                  key={item.id} 
+                  class={`p-4 border rounded-xl flex justify-between items-start transition-all ${
+                    item.read ? 'bg-slate-50 border-slate-100' : 'bg-legalBlue-50/20 border-legalBlue-100 shadow-xs'
+                  }`}
+                >
+                  <div class="flex items-start space-x-3">
+                    <span class="text-xl mt-0.5">
+                      {item.type === 'doc' ? '📄' : item.type === 'alert' ? '🕒' : item.type === 'case' ? '⚖️' : '⚠️'}
+                    </span>
+                    <div>
+                      <div class="flex items-center space-x-2">
+                        <h4 class="font-bold text-xs text-slate-800">{item.title}</h4>
+                        {!item.read && (
+                          <span class="bg-legalBlue-500 w-1.5 h-1.5 rounded-full inline-block"></span>
+                        )}
+                      </div>
+                      <p class="text-xs text-slate-500 mt-1 font-semibold">{item.desc}</p>
+                      <span class="text-[10px] text-slate-400 mt-2 block font-bold">{item.time}</span>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center space-x-2">
+                    {!item.read && (
+                      <button 
+                        onClick={() => onMarkRead(item.id)}
+                        class="text-[10px] font-bold text-legalBlue-500 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all"
+                      >
+                        Leído
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => onDeleteNotification(item.id)}
+                      class="text-xs text-slate-400 hover:text-rose-500 p-1 font-bold"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- MODALES (AGREGAR PROCESO, SUBIR DOCUMENTO, DETALLES) ---
+    const AddCaseModal = ({ isOpen, onClose, onAdd }) => {
+      const [id, setId] = useState("");
+      const [client, setClient] = useState("");
+      const [status, setStatus] = useState("En Proceso");
+      const [date, setDate] = useState("");
+      const [lawyer, setLawyer] = useState("Ana Gómez");
+      const [desc, setDesc] = useState("");
+
+      if (!isOpen) return null;
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        onAdd({ id, client, status, date: date || "-", lawyer, desc });
+        setId("");
+        setClient("");
+        setStatus("En Proceso");
+        setDate("");
+        setDesc("");
+        onClose();
+      };
+
+      return (
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in">
+          <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
+              <h3 class="font-extrabold text-base text-slate-800">Agregar Nuevo Proceso Jurídico</h3>
+              <button onClick={onClose} class="text-xl font-bold text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+
+            <form onSubmit={handleSubmit} class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 mb-1">Nº Expediente / ID</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Ej. 55678"
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
+                    class="border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-legalBlue-500 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 mb-1">Cliente / Carátula</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Ej. Pérez vs. López"
+                    value={client}
+                    onChange={(e) => setClient(e.target.value)}
+                    class="border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-legalBlue-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 mb-1">Estado</label>
+                  <select 
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    class="border border-slate-200 rounded-xl p-2.5 text-xs font-bold w-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-legalBlue-500"
+                  >
+                    <option value="En Proceso">En Proceso</option>
+                    <option value="Finalizado">Finalizado</option>
+                    <option value="En Espera">En Espera</option>
+                    <option value="En Juicio">En Juicio</option>
+                    <option value="Archivado">Archivado</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 mb-1">Abogado Asignado</label>
+                  <select 
+                    value={lawyer}
+                    onChange={(e) => setLawyer(e.target.value)}
+                    class="border border-slate-200 rounded-xl p-2.5 text-xs font-bold w-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-legalBlue-500"
+                  >
+                    <option value="Ana Gómez">Ana Gómez</option>
+                    <option value="Carlos Díaz">Carlos Díaz</option>
+                    <option value="Lucía Méndez">Lucía Méndez</option>
+                    <option value="Javier Ríos">Javier Ríos</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Próxima Fecha de Audiencia</label>
+                <input 
+                  type="date" 
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  class="border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full bg-slate-50 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Descripción de la Causa</label>
+                <textarea 
+                  rows="3"
+                  placeholder="Detalles sobre el proceso de Cero Sanciones..."
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  class="border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full bg-slate-50 focus:outline-none"
+                ></textarea>
+              </div>
+
+              <div class="flex space-x-2 pt-4 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={onClose}
+                  class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  class="flex-1 bg-legalBlue-500 hover:bg-legalBlue-600 text-white py-3 rounded-xl text-xs font-bold transition-all shadow"
+                >
+                  Guardar Expediente
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    const AddDocModal = ({ isOpen, onClose, onAdd }) => {
+      const [name, setName] = useState("");
+      const [type, setType] = useState("PDF");
+      const [folder, setFolder] = useState("Casos Civiles");
+
+      if (!isOpen) return null;
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        onAdd({ name, type, folder, date: "08/07/2026", size: "2.5 MB" });
+        setName("");
+        onClose();
+      };
+
+      return (
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in">
+          <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
+              <h3 class="font-extrabold text-base text-slate-800">Subir Documento Digital</h3>
+              <button onClick={onClose} class="text-xl font-bold text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+
+            <form onSubmit={handleSubmit} class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Nombre del Archivo</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="Ej. Escrito de Demanda Final"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  class="border border-slate-200 rounded-xl p-2.5 text-xs font-semibold w-full bg-slate-50"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Tipo de Documento</label>
+                <select 
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  class="border border-slate-200 rounded-xl p-2.5 text-xs font-bold w-full bg-slate-50"
+                >
+                  <option value="PDF">PDF (Documento Cerrado)</option>
+                  <option value="Word">Word (Documento Editable)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Carpeta Destino</label>
+                <select 
+                  value={folder}
+                  onChange={(e) => setFolder(e.target.value)}
+                  class="border border-slate-200 rounded-xl p-2.5 text-xs font-bold w-full bg-slate-50"
+                >
+                  <option value="Casos Civiles">Casos Civiles</option>
+                  <option value="Casos Penales">Casos Penales</option>
+                  <option value="Contratos Legales">Contratos Legales</option>
+                  <option value="Informes Periciales">Informes Periciales</option>
+                  <option value="Archivo General">Archivo General</option>
+                </select>
+              </div>
+
+              <div class="flex space-x-2 pt-4 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={onClose}
+                  class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  class="flex-1 bg-legalBlue-500 hover:bg-legalBlue-600 text-white py-3 rounded-xl text-xs font-bold transition-all shadow"
+                >
+                  Subir Archivo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    const CaseDetailModal = ({ isOpen, onClose, detail }) => {
+      if (!isOpen || !detail) return null;
+
+      return (
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in">
+          <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
+              <h3 class="font-extrabold text-base text-slate-800">Detalles de Expediente Jurídico</h3>
+              <button onClick={onClose} class="text-xl font-bold text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+
+            <div class="space-y-4 text-xs font-semibold">
+              <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 font-bold uppercase">Nº de Expediente</span>
+                <span class="text-slate-850 font-extrabold">{detail.id}</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 font-bold uppercase">Cliente / Causa</span>
+                <span class="text-slate-850 font-bold">{detail.client}</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 font-bold uppercase">Estado Procesal</span>
+                <span><StatusBadge status={detail.status} /></span>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 font-bold uppercase">Abogado Litigante</span>
+                <span class="text-slate-800">{detail.lawyer}</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 pb-2">
+                <span class="text-slate-400 font-bold uppercase">Próxima Audiencia</span>
+                <span class="text-slate-800 font-bold">{detail.date}</span>
+              </div>
+              <div>
+                <span class="text-slate-400 font-bold uppercase block mb-1">Descripción de la Causa</span>
+                <p class="text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  {detail.desc || "No hay notas adicionales provistas para este caso."}
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-100">
+              <button 
+                onClick={onClose}
+                class="w-full bg-legalBlue-500 hover:bg-legalBlue-600 text-white font-bold py-3 rounded-xl text-xs transition-all shadow"
+              >
+                Cerrar Detalle
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+
+    // --- COMPONENTE PRINCIPAL DE LA APLICACIÓN ---
+    const MainApp = () => {
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [currentUser, setCurrentUser] = useState(null);
+      const [currentView, setCurrentView] = useState("dashboard");
+      const [sidebarOpen, setSidebarOpen] = useState(false);
+
+      // Datos reactivos
+      const [cases, setCases] = useState(INITIAL_CASES);
+      const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
+      const [users, setUsers] = useState(INITIAL_USERS);
+      const [hearings, setHearings] = useState(INITIAL_HEARINGS);
+      const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+
+      // Control de Modales
+      const [isAddCaseOpen, setIsAddCaseOpen] = useState(false);
+      const [isAddDocOpen, setIsAddDocOpen] = useState(false);
+      const [isDetailOpen, setIsDetailOpen] = useState(false);
+      const [selectedDetail, setSelectedDetail] = useState(null);
+
+      const [toast, setToast] = useState(null);
+
+      const showToast = (message, type = 'info') => {
+        setToast({ message, type });
+      };
+
+      const handleLogin = (userObj) => {
+        setCurrentUser(userObj);
+        setIsLoggedIn(true);
+        showToast("¡Sesión iniciada correctamente en Cero Sanciones!", "success");
+      };
+
+      const handleLogout = () => {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setCurrentView("dashboard");
+        setSidebarOpen(false);
+      };
+
+      // Manejo de Casos
+      const handleAddCase = (newCase) => {
+        setCases([newCase, ...cases]);
+        showToast(`Caso '${newCase.client}' guardado correctamente.`, 'success');
+        
+        const newNotif = {
+          id: `n_${Date.now()}`,
+          title: "Expediente Creado",
+          desc: `Se ha abierto un expediente para ${newCase.client}.`,
+          time: "Hace 1 min",
+          type: "case",
+          read: false
+        };
+        setNotifications([newNotif, ...notifications]);
+
+        if (newCase.date && newCase.date !== "-") {
+          // Parse date for calendar mapping
+          const formattedDate = newCase.date.includes("/") ? newCase.date.split("/").reverse().join("-") : newCase.date;
+          const newHearing = {
+            id: `h_${Date.now()}`,
+            title: `Juicio - ${newCase.client.split(" ")[0]}`,
+            date: formattedDate,
+            time: "11:30 AM",
+            type: "Civil",
+            badgeColor: "bg-blue-100 text-blue-800 border-blue-300"
+          };
+          setHearings([newHearing, ...hearings]);
+        }
+      };
+
+      const handleDeleteCase = (id) => {
+        setCases(cases.filter(c => c.id !== id));
+        showToast("Caso eliminado correctamente del sistema.", "success");
+      };
+
+      const handleViewDetail = (caseObj) => {
+        setSelectedDetail(caseObj);
+        setIsDetailOpen(true);
+      };
+
+      // Manejo de Documentos
+      const handleAddDoc = (newDoc) => {
+        const id = `d_${Date.now()}`;
+        setDocuments([{ id, ...newDoc }, ...documents]);
+        showToast(`Documento '${newDoc.name}' subido correctamente.`, 'success');
+        
+        const newNotif = {
+          id: `n_${Date.now()}`,
+          title: "Documento digitalizado",
+          desc: `Se cargó '${newDoc.name}' en la carpeta ${newDoc.folder}.`,
+          time: "Hace 1 min",
+          type: "doc",
+          read: false
+        };
+        setNotifications([newNotif, ...notifications]);
+      };
+
+      const handleDeleteDoc = (id) => {
+        setDocuments(documents.filter(d => d.id !== id));
+        showToast("Archivo eliminado permanentemente.", "info");
+      };
+
+      // Manejo de Usuarios
+      const handleAddUser = () => {
+        const name = prompt("Ingrese nombre del nuevo abogado/usuario:");
+        if (!name) return;
+        const email = prompt("Ingrese su correo corporativo:");
+        if (!email) return;
+        const role = prompt("Ingrese su cargo (Abogada, Procurador, Asistente Legal, Juez):", "Asistente Legal");
+        if (!role) return;
+
+        const newUser = {
+          id: `u_${Date.now()}`,
+          name,
+          role,
+          email,
+          status: "Activo",
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
+        };
+
+        setUsers([...users, newUser]);
+        showToast(`Usuario ${name} registrado en Cero Sanciones.`, "success");
+      };
+
+      const handleToggleUserStatus = (id) => {
+        setUsers(users.map(u => u.id === id ? { ...u, status: u.status === 'Activo' ? 'Inactivo' : 'Activo' } : u));
+        showToast("Estado de usuario actualizado correctamente.", "info");
+      };
+
+      // Notificaciones
+      const handleMarkRead = (id) => {
+        setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+      };
+
+      const handleMarkAllRead = () => {
+        setNotifications(notifications.map(n => ({ ...n, read: true })));
+        showToast("Todas las notificaciones leídas.", "info");
+      };
+
+      const handleDeleteNotification = (id) => {
+        setNotifications(notifications.filter(n => n.id !== id));
+      };
+
+      const unreadCount = notifications.filter(n => !n.read).length;
+
+      const renderView = () => {
+        switch (currentView) {
+          case "dashboard":
+            return (
+              <DashboardView 
+                cases={cases}
+                hearings={hearings}
+                documents={documents}
+                notifications={notifications}
+                users={users}
+                onViewChange={setCurrentView}
+                onAddCaseClick={() => setIsAddCaseOpen(true)}
+              />
+            );
+          case "cases":
+            return (
+              <CasesView 
+                cases={cases}
+                onAddCaseClick={() => setIsAddCaseOpen(true)}
+                onDeleteCase={handleDeleteCase}
+                onViewDetail={handleViewDetail}
+              />
+            );
+          case "calendar":
+            return (
+              <CalendarView 
+                hearings={hearings}
+                onAddEventClick={() => {
+                  showToast("Crea un expediente indicando la fecha para agendar audiencias automáticamente.", "info");
+                }}
+              />
+            );
+          case "documents":
+            return (
+              <DocumentsView 
+                documents={documents}
+                onAddDocClick={() => setIsAddDocOpen(true)}
+                onDeleteDoc={handleDeleteDoc}
+                toastInfo={(msg, type) => showToast(msg, type)}
+              />
+            );
+          case "reports":
+            return <ReportsView cases={cases} toastInfo={(msg, type) => showToast(msg, type)} />;
+          case "users":
+            return <UsersView users={users} onAddUserClick={handleAddUser} onToggleUserStatus={handleToggleUserStatus} />;
+          case "settings":
+            return <SettingsView user={currentUser} toastInfo={(msg, type) => showToast(msg, type)} />;
+          case "notifications":
+            return (
+              <NotificationsView 
+                notifications={notifications}
+                onMarkRead={handleMarkRead}
+                onMarkAllRead={handleMarkAllRead}
+                onDeleteNotification={handleDeleteNotification}
+              />
+            );
+          default:
+            return <DashboardView />;
+        }
+      };
+
+      if (!isLoggedIn) {
+        return <LoginScreen onLogin={handleLogin} />;
+      }
+
+      const viewTitles = {
+        dashboard: "Dashboard de Control",
+        cases: "Mis Procesos",
+        calendar: "Calendario Jurídico",
+        documents: "Gestor Documental",
+        reports: "Reportes & Analíticas",
+        users: "Usuarios del Equipo",
+        settings: "Configuración",
+        notifications: "Centro de Notificaciones"
+      };
+
+      return (
+        <div class="min-h-screen flex bg-slate-50 relative overflow-x-hidden">
+          <Sidebar 
+            currentView={currentView}
+            onViewChange={setCurrentView}
+            unreadCount={unreadCount}
+            onLogout={handleLogout}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+
+          <div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+            <Header 
+              title={viewTitles[currentView]}
+              user={currentUser}
+              notifications={notifications}
+              onViewChange={setCurrentView}
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            />
+            
+            <main class="flex-grow">
+              {renderView()}
+            </main>
+          </div>
+
+          <AddCaseModal 
+            isOpen={isAddCaseOpen}
+            onClose={() => setIsAddCaseOpen(false)}
+            onAdd={handleAddCase}
+          />
+
+          <AddDocModal 
+            isOpen={isAddDocOpen}
+            onClose={() => setIsAddDocOpen(false)}
+            onAdd={handleAddDoc}
+          />
+
+          <CaseDetailModal 
+            isOpen={isDetailOpen}
+            onClose={() => setIsDetailOpen(false)}
+            detail={selectedDetail}
+          />
+
+          {toast && (
+            <Toast 
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
+        </div>
+      );
+    };
+
+    // Renderizado en DOM de React18
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<MainApp />);
+  </script>
+</body>
+</html>
